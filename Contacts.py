@@ -1,13 +1,16 @@
 import vobject
 
 class Contact:
-    def __init__(self,FirstName,FamilyName=None):
+    CONTACT_FILE_PATH = "./Contacts/ContactList.csv"
+    CONTACT_REPOSITORY_PATH = "./Contacts/"
+    def __init__(self,FirstName=None,FamilyName=None):
+        if FirstName == None and FamilyName == None:
+            return
         First_Name = FirstName
         Family_Name = FamilyName
         what_to_add = input("Do you want to add Phone number or Email address : ")
         add_email = 0
         add_phone = 0
-
         what_to_add_words = what_to_add.split()
         for word in what_to_add_words:
             if word in "phone number mobile":
@@ -114,17 +117,15 @@ class Contact:
     def save_new_contact(self,First_Name,Family_Name,data):
         print("entring save_new_contact")
         filename = "%s-%s.vcf" % (First_Name,Family_Name)
-        path = "./Contacts/"
-        address = path+filename
+        address = self.CONTACT_REPOSITORY_PATH+filename
         f = open(address, "w")
         f.write(data)
         f.close()
-        address = path+"ContactList.csv"
-        contact_file = open(address,'a')
+        contact_file = open(self.CONTACT_FILE_PATH,'a')
         contact_file.close()
-        ContactList = self.getContactList(address)
+        ContactList = self.getContactList()
         index = len(ContactList)+1
-        contact_file = open(address,'a')
+        contact_file = open(self.CONTACT_FILE_PATH,'a')
         contact_file.write(str(index)+",{} {} \n".format(First_Name,Family_Name))
         contact_file.close()
 
@@ -137,8 +138,6 @@ class Contact:
         obj = contact.add('N')
         if len(Name) == 2:
             obj.value = vobject.vcard.Name( family=Name[1], given=Name[0])
-
-        len_parameters = len(parameters.items())
         contact_parameters = list(parameters.keys())
         for params in contact_parameters:
             different_type_values = list(parameters[params].keys())
@@ -148,15 +147,65 @@ class Contact:
                 obj.value = parameters[params][value]
         return contact.serialize()
 
-    def getContactList(self,address):
+    def getContactList(self):
         contact_list = []
-        contact_file = open(address,'r')
+        contact_file = open(self.CONTACT_FILE_PATH,'r')
         for line in contact_file:
             contact_list.append(line)
         contact_file.close()
         return contact_list
     
-fn = input("Enter the first name : ")
-ln = input("Enter the family name")
+    def findContact(self,Name):
+        contact_list = self.getContactList()
+        name_words = Name.split()
+        found_flag = 0
+        recorded_name = ''
+        for word in name_words:
+            for item in contact_list:
+                if word in item:
+                    found_flag = 1
+                    recorded_name = item
+        if found_flag == 0:
+            print("Contact is not already saved")
+            return "Command Execution Failed"
+        temp_string = recorded_name.split(',')
+        temp_string = temp_string[1].split()
+        temp_string = '-'.join(temp_string)
+        contact_vcard = temp_string+".vcf"
+        contact_vcard_path = self.CONTACT_REPOSITORY_PATH+contact_vcard
+        return contact_vcard_path
+        
+    def getEmailAddresses(self,Name):
+        contact_file_path = self.findContact(Name)
+        contact_file = open(contact_file_path,'r')
+        contact_file_content = contact_file.read()
+        contact_vcard = vobject.readOne(contact_file_content)
+        contact_emails = dict()
+        for email in contact_vcard.contents['email']:
+            contact_emails[email.type_param] = email.value
+        return contact_emails
 
-new_contact = Contact(fn,ln)
+    def getPhoneNumbers(self,Name):
+        contact_file_path = self.findContact(Name)
+        contact_file = open(contact_file_path,'r')
+        contact_file_content = contact_file.read()
+        contact_vcard = vobject.readOne(contact_file_content)
+        contact_phone_numbers = dict()
+        for tel in contact_vcard.contents['tel']:
+            contact_phone_numbers[tel.type_param] = tel.value
+        return contact_phone_numbers
+
+#fn = input("Enter the first name : ")
+#ln = input("Enter the family name")
+
+#new_contact = Contact(fn,ln)
+new_contact = Contact()
+contact_vcard = new_contact.findContact("Mohit Beniwal")
+contact_emails = new_contact.getEmailAddresses("Mohit Beniwal")
+print(contact_emails)
+
+contact_phones = new_contact.getPhoneNumbers("Mohit Beniwal")
+print(contact_phones)
+#v = vobject.readOne( s )
+#>>> for tel in v.contents['tel']:
+#...     print tel
