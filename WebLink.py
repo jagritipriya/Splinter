@@ -6,8 +6,8 @@ from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 from email import encoders
 
-user = "mohit7me@gmail.com"
-password = "HeyRam123"
+user = ''
+password = ''
 subject = "A Photo"
 message = "I hope its working"
 send_from = "mohit7me@gmail.com"
