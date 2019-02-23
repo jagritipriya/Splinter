@@ -23,6 +23,7 @@ class Contact:
             return None
         Parameters = self.ask_details(add_phone,add_email)
         data = self.create_vcard(FirstName+" "+FamilyName, Parameters)
+        print("Recieved values are :",data)
         self.save_new_contact(First_Name,Family_Name,data)
     def ask_details(self,add_phone = 0, add_email = 0):
         if add_phone:
@@ -111,11 +112,21 @@ class Contact:
             
         
     def save_new_contact(self,First_Name,Family_Name,data):
+        print("entring save_new_contact")
         filename = "%s-%s.vcf" % (First_Name,Family_Name)
-        address = "./Contacts/"+filename
+        path = "./Contacts/"
+        address = path+filename
         f = open(address, "w")
         f.write(data)
         f.close()
+        address = path+"ContactList.csv"
+        contact_file = open(address,'a')
+        contact_file.close()
+        ContactList = self.getContactList(address)
+        index = len(ContactList)+1
+        contact_file = open(address,'a')
+        contact_file.write(str(index)+",{} {} \n".format(First_Name,Family_Name))
+        contact_file.close()
 
     def create_vcard(self,name,parameters):
         contact = vobject.vCard()
@@ -135,19 +146,17 @@ class Contact:
                 obj = contact.add(params)
                 obj.type_param = value
                 obj.value = parameters[params][value]
-        print(contact.serialize())
         return contact.serialize()
 
-#contact_details = {"Ph No":["Cell","9741047496"], "Email": ["Personal","mohit7me@gmail.com"]}
-#contact_name = "Mohit Beniwal"
+    def getContactList(self,address):
+        contact_list = []
+        contact_file = open(address,'r')
+        for line in contact_file:
+            contact_list.append(line)
+        contact_file.close()
+        return contact_list
+    
+fn = input("Enter the first name : ")
+ln = input("Enter the family name")
 
-#Contact.add_new_contact(contact_name,contact_details)
-
-First_Name = input("Enter first name :")
-Family_Name = input("Enter Family name :")
-
-new_contact = Contact(First_Name,Family_Name)
-
-
-
-
+new_contact = Contact(fn,ln)
