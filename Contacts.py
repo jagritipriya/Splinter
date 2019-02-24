@@ -22,13 +22,13 @@ class Contact:
                 add_email = 1
         if not add_phone and not add_email:
             print("Why did you asked me to add a contact number ? ")
-            print("Leave it ")
+            print("Leave it !")
             return None
         Parameters = self.ask_details(add_phone,add_email)
         data = self.create_vcard(FirstName+" "+FamilyName, Parameters)
         print("Recieved values are :",data)
         self.save_new_contact(First_Name,Family_Name,data)
-    def ask_details(self,add_phone = 0, add_email = 0):
+    def ask_details(self,add_phone = 0, add_email = 0,name = None):
         if add_phone:
             add_more = 1
             Phone_Numbers = dict()
@@ -41,10 +41,10 @@ class Contact:
                             if phone_number == Phone_Numbers[key]:
                                 already_exist_flag = 1
                 if already_exist_flag:
-                    print("This Phone Number already exist as Persons's ",key," Phone number")
+                    print("This Phone Number already exist as ",name,"'s",key," Phone number !")
                 
                 else:
-                    Phone_Type = input("Is this personal phone number or work phone number ")
+                    Phone_Type = input("Is this personal phone number or work phone number: ")
                     personal_flag = 0
                     work_flag = 0
                     phone_type_words = Phone_Type.split()
@@ -82,9 +82,9 @@ class Contact:
                             if email == Emails[key]:
                                 already_exist_flag = 1
                 if already_exist_flag:
-                    print("This Email already exist as Persons's ",key," Email")
+                    print("This Email already exist as as ",name,"'s",key," Email")
                 else:
-                    Email_Type = input("Is this personal email or work email")
+                    Email_Type = input("Is this personal email or work email: ")
                     email_type_words = Email_Type.split()
                     for word in email_type_words:
                         if word in "personal self own":
@@ -104,7 +104,7 @@ class Contact:
                         else:
                             Emails["Work_"+str(work_count)] = email
                 add_more_email = input("Add more emails ? ")
-                if add_more_email.lower() in "no nah":
+                if add_more_email.lower() in "no nah that's it":
                     add_more = 0
         if add_phone and not add_email:
             return({"Ph No":Phone_Numbers})
@@ -115,7 +115,6 @@ class Contact:
             
         
     def save_new_contact(self,First_Name,Family_Name,data):
-        print("entring save_new_contact")
         filename = "%s-%s.vcf" % (First_Name,Family_Name)
         address = self.CONTACT_REPOSITORY_PATH+filename
         f = open(address, "w")
@@ -126,7 +125,10 @@ class Contact:
         ContactList = self.getContactList()
         index = len(ContactList)+1
         contact_file = open(self.CONTACT_FILE_PATH,'a')
-        contact_file.write(str(index)+",{} {} \n".format(First_Name,Family_Name))
+        if index == 1:
+            contact_file.write(str(index)+",{} {} \n".format(First_Name,Family_Name))
+        else:
+            contact_file.write("\n"+str(index)+",{} {} ".format(First_Name,Family_Name))
         contact_file.close()
 
     def create_vcard(self,name,parameters):
@@ -155,28 +157,49 @@ class Contact:
         contact_file.close()
         return contact_list
     
+    def showContactList(self):
+        contact_list = self.getContactList()
+        for contact in contact_list:
+            if "My Self".lower() in contact.lower():
+                remove_this = contact
+        contact_list.remove(remove_this)
+        print("All Available contacts are :")
+        for contact in contact_list:
+            contact = contact.split(',')
+            contact = '. '.join(contact)
+            print(contact)
+
     def findContact(self,Name):
         contact_list = self.getContactList()
-        name_words = Name.split()
+        name_words = Name.lower().split()
         found_flag = 0
-        recorded_name = ''
+        recorded_names = []
         for word in name_words:
             for item in contact_list:
-                if word in item:
+                if word in item.lower():
                     found_flag = 1
-                    recorded_name = item
+                    recorded_names.append(item)
         if found_flag == 0:
-            print("Contact is not already saved")
-            return "Command Execution Failed"
-        temp_string = recorded_name.split(',')
-        temp_string = temp_string[1].split()
-        temp_string = '-'.join(temp_string)
-        contact_vcard = temp_string+".vcf"
-        contact_vcard_path = self.CONTACT_REPOSITORY_PATH+contact_vcard
-        return contact_vcard_path
+            return 0
+        contact_vcards = dict()
+        if len(recorded_names) > 1:
+            for recorded_name in recorded_names:
+                temp_string = recorded_name.split(',')
+                temp_string = temp_string[1].split()
+                temp_string = '-'.join(temp_string)
+                contact_vcard = temp_string+".vcf"
+                contact_vcard_path = self.CONTACT_REPOSITORY_PATH+contact_vcard
+                contact_vcards[recorded_name] = contact_vcard_path
+        choice = input("There are multiple contacts with this name : \n")
+        for name in list(contact_vcards.keys()):
+            print(name)
+        
+        return contact_vcards
         
     def getEmailAddresses(self,Name):
         contact_file_path = self.findContact(Name)
+        if contact_file_path == 0:
+            return False
         contact_file = open(contact_file_path,'r')
         contact_file_content = contact_file.read()
         contact_vcard = vobject.readOne(contact_file_content)
@@ -199,13 +222,13 @@ class Contact:
 #ln = input("Enter the family name")
 
 #new_contact = Contact(fn,ln)
-new_contact = Contact()
-contact_vcard = new_contact.findContact("Mohit Beniwal")
-contact_emails = new_contact.getEmailAddresses("Mohit Beniwal")
-print(contact_emails)
+#new_contact = Contact()
+#contact_vcard = new_contact.findContact("Mohit Beniwal")
+#contact_emails = new_contact.getEmailAddresses("Mohit Beniwal")
+#print(contact_emails)
 
-contact_phones = new_contact.getPhoneNumbers("Mohit Beniwal")
-print(contact_phones)
+#contact_phones = new_contact.getPhoneNumbers("Mohit Beniwal")
+#print(contact_phones)
 #v = vobject.readOne( s )
 #>>> for tel in v.contents['tel']:
 #...     print tel

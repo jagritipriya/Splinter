@@ -5,18 +5,50 @@ from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email.utils import COMMASPACE, formatdate
 from email import encoders
+from Contacts import Contact
+from InitializeOwner import FirstMan
+class EmailObject:
+    MYSELF = "My Self"
+    send_from = ''
+    send_to = ''
+    files = []
+    subject = ''
+    message = ''
+    def __init__(self):
+        contact_object = Contact()
+        my_email_address = contact_object.getEmailAddresses(self.MYSELF)
+        self.send_from = my_email_address['Personal']
+        if len(my_email_address)>1:
+            choice = input("Should I use your work email address ?")
+            choice_words = choice.split()
+            for word in choice_words:
+                if word in "yeah yes right":
+                    self.send_from = my_email_address['Work']            
 
-user = ''
-password = ''
-subject = "A Photo"
-message = "I hope its working"
-send_from = "mohit7me@gmail.com"
-sent_to = "mohit7me@gmail.com"
+        send_to = input("Whom do you want to send the mail : ")
+        contacts_email_address = contact_object.getEmailAddresses(send_to)
+        self.send_to = contacts_email_address['Personal']
+        if len(contacts_email_address)>1:
+            print("These are the available email address : \n",contacts_email_address)
+            choice = input("Which email address you want to choose ?")
+            choice_words = choice.split()
+            for word in choice_words:
+                if word in "work professional":
+                    self.send_to = contacts_email_address['Work']
+        self.subject = input("What should be the subject of email :")
+        self.message = input("What is your message ?")
+        
+        
 class DarkMail:
-    def SendMail(send_from, send_to, subject, message, files=[],
+    def SendMail(self,send_from, send_to, subject, message, files=[],
                     server="smtp.gmail.com", port=587, username='', password='',
                     use_tls=True):
-
+        username = send_from
+        One = FirstMan()
+        Hawk_Radiation = One.Hawking_Radiation()
+        password = Hawk_Radiation[username]
+        if username == '' or password == '':
+            print("I don't have your Gmail Credentials !")
         """Compose and send email with provided info and attachments.
         Args:
             send_from (str): from name
@@ -30,6 +62,8 @@ class DarkMail:
             password (str): server auth password
             use_tls (bool): use TLS mode
         """
+        
+
         msg = MIMEMultipart()
         msg['From'] = send_from
         msg['To'] = COMMASPACE.join(send_to)
@@ -62,7 +96,7 @@ class DarkMail:
             smtp.quit()
             return "Something went wrong"
     
-    def ReceiveMail():
+    def ReceiveMail(self):
         import getpass
         import smtplib
         import time
