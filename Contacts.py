@@ -1,6 +1,10 @@
 import vobject
-
+from fuzzywuzzy import fuzz 
+from fuzzywuzzy import process 
+import pandas as pd
+from QureyParser import QueryParser
 class Contact:
+    QP = QueryParser()
     CONTACT_FILE_PATH = "./Contacts/ContactList.csv"
     CONTACT_REPOSITORY_PATH = "./Contacts/"
     def __init__(self,FirstName=None,FamilyName=None):
@@ -9,15 +13,16 @@ class Contact:
         First_Name = FirstName
         Family_Name = FamilyName
         what_to_add = input("Do you want to add Phone number or Email address : ")
+        what_to_add = self.QP.matchChoices(what_to_add,['phone number mobile','email address','both all'])
         add_email = 0
         add_phone = 0
         what_to_add_words = what_to_add.split()
         for word in what_to_add_words:
             if word in "phone number mobile":
                 add_phone =1 
-            if word in "email mail address":
+            if word in "email address":
                 add_email = 1
-            if word in "both":
+            if word in "both all":
                 add_phone = 1
                 add_email = 1
         if not add_phone and not add_email:
@@ -115,6 +120,12 @@ class Contact:
             
         
     def save_new_contact(self,First_Name,Family_Name,data):
+        AllEmails = []
+        contact_vcard = vobject.readOne(data)
+        for email in contact_vcard.contents['email']:
+            AllEmails.append(email.value)
+        First_Name_Words = First_Name.split()
+        First_Name = '-'.join(First_Name_Words)
         filename = "%s-%s.vcf" % (First_Name,Family_Name)
         address = self.CONTACT_REPOSITORY_PATH+filename
         f = open(address, "w")
@@ -125,10 +136,11 @@ class Contact:
         ContactList = self.getContactList()
         index = len(ContactList)+1
         contact_file = open(self.CONTACT_FILE_PATH,'a')
+        AllEmails = " ".join(AllEmails)
         if index == 1:
-            contact_file.write(str(index)+",{} {} \n".format(First_Name,Family_Name))
+            contact_file.write(str(index)+", {} {} , {} \n".format(First_Name,Family_Name,AllEmails))
         else:
-            contact_file.write("\n"+str(index)+",{} {} ".format(First_Name,Family_Name))
+            contact_file.write("\n"+str(index)+", {} {} , {} ".format(First_Name,Family_Name,AllEmails))
         contact_file.close()
 
     def create_vcard(self,name,parameters):
@@ -181,32 +193,72 @@ class Contact:
                     recorded_names.append(item)
         if found_flag == 0:
             return 0
-        contact_vcards = dict()
-        if len(recorded_names) > 1:
-            for recorded_name in recorded_names:
-                temp_string = recorded_name.split(',')
-                temp_string = temp_string[1].split()
-                temp_string = '-'.join(temp_string)
-                contact_vcard = temp_string+".vcf"
-                contact_vcard_path = self.CONTACT_REPOSITORY_PATH+contact_vcard
-                contact_vcards[recorded_name] = contact_vcard_path
-        choice = input("There are multiple contacts with this name : \n")
-        for name in list(contact_vcards.keys()):
-            print(name)
+        recorded_names = set(recorded_names)
+        fuzz_match = process.extract(Name, recorded_names)
+        fuzz_value = process.extractOne(Name, recorded_names)[1]
+        if len(fuzz_match) > 1:
+            name_collision = 1
+        else:
+            name_collision = 0
+        for fuzz in fuzz_match:
+            if fuzz_value != fuzz[1]:
+                name_collision=0
+        if name_collision == 1:
+            recorded_names = [contact[0] for contact in fuzz_match]
+            print("There are multiple persons with this name: ")
+            for contact in recorded_names:
+                print(contact)
+            choice = input("Which Person are you talking about: ")
+            matched_contact = fuzz_value = process.extractOne(choice, recorded_names)[0]
+        else:
+            matched_contact = fuzz_value = process.extractOne(Name, recorded_names)[0]
         
-        return contact_vcards
+        temp_string = matched_contact.split(',')
+        temp_string = temp_string[1].split()
+        temp_string = '-'.join(temp_string)
+        contact_vcard = temp_string+".vcf"
+        contact_vcard_path = self.CONTACT_REPOSITORY_PATH+contact_vcard
+        return contact_vcard_path
         
     def getEmailAddresses(self,Name):
-        contact_file_path = self.findContact(Name)
-        if contact_file_path == 0:
-            return False
-        contact_file = open(contact_file_path,'r')
-        contact_file_content = contact_file.read()
-        contact_vcard = vobject.readOne(contact_file_content)
-        contact_emails = dict()
-        for email in contact_vcard.contents['email']:
-            contact_emails[email.type_param] = email.value
-        return contact_emails
+        Names = [] 
+        return_contact_emails = dict()
+        if "and" in Name:
+            contact_email_by_name = dict()
+            Names = Name.split('and')
+            for name in Names:
+                contact_emails = dict()
+                contact_file_path = self.findContact(name)
+                if contact_file_path == 0:
+                    continue
+                else:
+                    contact_file = open(contact_file_path,'r')
+                    contact_file_content = contact_file.read()
+                    contact_vcard = vobject.readOne(contact_file_content)
+                    for email in contact_vcard.contents['email']:
+                        contact_emails[email.type_param] = email.value
+                    contact_email_by_name[name] = contact_emails
+            for name in list(contact_email_by_name.keys()):
+                choice = list(contact_email_by_name[name].keys())[0]
+                if len(contact_email_by_name[name]) > 1 :
+                    print("{} has more than one email address : ".format(name),contact_email_by_name[name])
+                    choice = input("Which Email Address should I use ? {}  ".format('or'.join(list(contact_email_by_name[name].keys()))))
+                    choice = process.extractOne(choice,["Work","Personal","Both","All"])
+                if choice == "Both" or choice == "All":
+                    for typ in list(contact_email_by_name[name].keys()):
+                        return_contact_emails[(name,typ)] = contact_email_by_name[name][typ]
+                return_contact_emails[name] = contact_email_by_name[name][choice]
+        else:
+            contact_file_path = self.findContact(Name)
+            if contact_file_path == 0:
+                return False
+            contact_file = open(contact_file_path,'r')
+            contact_file_content = contact_file.read()
+            contact_vcard = vobject.readOne(contact_file_content)
+            for email in contact_vcard.contents['email']:
+                return_contact_emails[email.type_param] = email.value
+        #print("Going to send emails to: ",return_contact_emails)
+        return return_contact_emails
 
     def getPhoneNumbers(self,Name):
         contact_file_path = self.findContact(Name)
@@ -217,6 +269,35 @@ class Contact:
         for tel in contact_vcard.contents['tel']:
             contact_phone_numbers[tel.type_param] = tel.value
         return contact_phone_numbers
+    def getAllEmails(self):
+        #print("Inside getAllEmails")
+        contacts = pd.read_csv(self.CONTACT_FILE_PATH)
+        #print(contacts.head())
+        AllEmails = list(contacts['Email Addresses'])
+        CopyEmails = AllEmails
+        #print(CopyEmails)
+        for index in range(len(AllEmails)):
+            #print("{} mail : {}".format(index,AllEmails[index]))
+            mail = AllEmails[index]
+            #print("type : ",type(mail))
+            if ' ' in str(AllEmails[index]):
+                #print("inside if")
+                templist = AllEmails[index].split()
+                for mails in templist:
+                    CopyEmails.append(mails.strip())
+        AllEmails = []
+        for email in CopyEmails:
+            email = str(email)
+            if email =='nan':
+                continue
+            email = email.strip()
+            #print("Adding : ",email)
+            AllEmails.append(email)
+        AllEmails = list(set(AllEmails))
+        #print("Returning all mails : ",set(AllEmails))
+        return list(set(AllEmails))
+
+
 
 #fn = input("Enter the first name : ")
 #ln = input("Enter the family name")

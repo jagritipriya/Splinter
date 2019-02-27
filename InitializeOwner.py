@@ -4,6 +4,13 @@ from Contacts import Contact
 class FirstMan:
     SHADOW_FILE_PATH = './Shadows/.nofile'
     SECRET_FILE_PATH = './Shadows/.secrets'
+
+    def Init(self):
+        InitializeOwner = self.TakeContactDetails()
+        print(InitializeOwner)
+        InitializeSecrets = self.BlackHole()
+        print(InitializeSecrets)
+    
     def TakeContactDetails(self):
         Contact_Object = Contact()
         Owner_details = Contact_Object.getEmailAddresses(Name="My Self")
@@ -30,7 +37,7 @@ class FirstMan:
         shadows = []
         pending_secrets = []
         for line in shadow_file.read():
-            shadows.append(line)
+            shadows.append(line)   
         shadow_file.close()
         if len(shadows) == 0:
             shadow_file = open(self.SHADOW_FILE_PATH,'a')
