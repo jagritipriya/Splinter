@@ -3,6 +3,7 @@ from fuzzywuzzy import fuzz
 from fuzzywuzzy import process 
 import pandas as pd
 from QureyParser import QueryParser
+import re
 class Contact:
     QP = QueryParser()
     CONTACT_FILE_PATH = "./Contacts/ContactList.csv"
@@ -41,7 +42,15 @@ class Contact:
             work_count = 0
             while(add_more):
                 already_exist_flag = 0
+                
                 phone_number = input("What is the phone number ? ")
+	            if len(z) == 10:
+		            if re.search("^[789]\d+$", z) != None:
+			            print("YES")
+		            else:
+			            print("Not a valid number")
+	            else:
+		            print("Not a valid number")
                 for key in Phone_Numbers.keys():
                             if phone_number == Phone_Numbers[key]:
                                 already_exist_flag = 1
@@ -83,6 +92,7 @@ class Contact:
                 work_flag = 0
                 already_exist_flag = 0
                 email = input("What is the Email address ? ")
+                isValidEmail(email)
                 for key in Emails.keys():
                             if email == Emails[key]:
                                 already_exist_flag = 1
@@ -90,6 +100,7 @@ class Contact:
                     print("This Email already exist as as ",name,"'s",key," Email")
                 else:
                     Email_Type = input("Is this personal email or work email: ")
+                    
                     email_type_words = Email_Type.split()
                     for word in email_type_words:
                         if word in "personal self own":
@@ -117,7 +128,15 @@ class Contact:
             return({"Emails":Emails})
         
         return({"tel":Phone_Numbers,"Email":Emails}) 
-            
+ def isValidEmail(email):
+    if len(email) > 7:
+    if re.match("^.+@([?)[a-zA-Z0-9-.]+.([a-zA-Z]{2,3}|[0-9]{1,3})(]?)$", email) != None:
+    return True
+    return False
+    if isValidEmail("my.email@gmail.com") == True :
+        print "This is a valid email address"
+    else:
+        print "This is not a valid email address"      
         
     def save_new_contact(self,First_Name,Family_Name,data):
         AllEmails = []
